@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QWidget, QLabel, QVBoxLayout,QTextEdit, QPushButton
+from PySide6.QtWidgets import QWidget, QLabel, QVBoxLayout,QTextEdit, QPushButton, QMessageBox
  
 class MessageBoard(QWidget):
     def __init__(self): # Constructeur
@@ -13,18 +13,24 @@ class MessageBoard(QWidget):
 
  
         # QTextEdit
-        text_edit = QTextEdit()
-        text_edit.setPlaceholderText("message")
-        layout.addWidget(text_edit)
+        self.text_edit = QTextEdit()
+        self.text_edit.setPlaceholderText("message")
+        layout.addWidget(self.text_edit)
         
  
         # QPushButton
-        button = QPushButton("apuier")
+        button = QPushButton("Appuier")
         layout.addWidget(button)
+        button.clicked.connect(self.on_click)
    
     def on_click(self):
         print("on click called")
         # QMessageBox
+        message = self.text_edit.toPlainText()
+        box = QMessageBox()
+        box.setWindowTitle("message")
+        box.setText(message)
+        box.exec()
    
  
 def main():
