@@ -1,32 +1,13 @@
 from PySide6 import QtWidgets
 
-from maya import cmds
-from PySide6.QtWidgets import (
-    QWidget,
-    QPushButton,
-    QVBoxLayout,
-    QHBoxLayout,
-    QLabel,
-    QSpinBox,
-    QDoubleSpinBox,
-    QGroupBox,
-    QHBoxLayout
-)
 
-from PySide6.QtWidgets import  QtCore
-
-from animator import RandomAnimator
+from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QPushButton, QLabel, QSpinBox, QDoubleSpinBox, QGroupBox
 
 
 
 class RandoAnimatorUI(QtWidgets.QDialog):
     def __init__(self):
         super().__init__()
-
-        self.setWindowTitle("Random Animation")
-        self.setFixedWidth(500)
-
-        self.animator = RandomAnimator()
 
         self.build_ui()
 
@@ -89,7 +70,7 @@ class RandoAnimatorUI(QtWidgets.QDialog):
         timing_layout2.addWidget(
             QtWidgets.QLabel("min_x:")
         )
-        timing_layout2.addWidget(self.translate_x)
+        timing_layout2.addWidget(self.translate_min_x)
 
         timing_layout2.addWidget(
             QtWidgets.QLabel("min_y:")
@@ -238,10 +219,11 @@ class RandoAnimatorUI(QtWidgets.QDialog):
 
         self.button = QtWidgets.QPushButton("Generate")
         self.button.setFixedSize(100,30)
-        self.button.clicked.connect(self.generate_animation)
+       
         layout = QtWidgets.QHBoxLayout()
         layout.addStretch()
         layout.addWidget(self.button)
+        layout.addLayout(button_layout)
         
 
 
