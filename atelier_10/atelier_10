@@ -1,0 +1,116 @@
+
+import random
+
+from maya import cmds
+from PySide6 import QtWidgets, QtCore
+
+
+class CactusScatter(QtWidgets.QDialog):
+
+    def __init__(self):
+        super().__init__()
+
+        self.setWindowTitle("Cactus Scatter")
+        self.setFixedSize(260, 200)
+
+        # Toujours au-dessus de Maya
+        self.setWindowFlags(
+            self.windowFlags() |
+            QtCore.Qt.WindowStaysOnTopHint
+        )
+
+        self.group = None
+
+        self.build_ui()
+
+    def build_ui(self):
+
+        layout = QtWidgets.QVBoxLayout(self)
+
+        # Nombre de cactus
+        layout.addWidget(QtWidgets.QLabel("Number of Cactus"))
+
+        self.number = QtWidgets.QSpinBox()
+        self.number.setRange(1, 500)
+        self.number.setValue(20)
+        layout.addWidget(self.number)
+
+        # Rayon de dispersion
+        layout.addWidget(QtWidgets.QLabel("Scatter Radius"))
+
+        self.radius = QtWidgets.QDoubleSpinBox()
+        self.radius.setRange(1, 100)
+        self.radius.setValue(10)
+        layout.addWidget(self.radius)
+
+        # Taille des cactus
+        layout.addWidget(QtWidgets.QLabel("Cactus Size"))
+
+        self.size = QtWidgets.QDoubleSpinBox()
+        self.size.setRange(0.1, 10)
+        self.size.setValue(1)
+        layout.addWidget(self.size)
+
+        # Bouton Scatter
+        self.button = QtWidgets.QPushButton("Scatter")
+        layout.addWidget(self.button)
+
+        self.button.clicked.connect(self.scatter)
+
+    def scatter(self):
+
+        # Supprimer l'ancienne plantation
+        if self.group and cmds.objExists(self.group):
+            cmds.delete(self.group)
+
+        # Créer un groupe
+        self.group = cmds.group(
+            empty=True,
+            name="Cactus_Scatter_GRP"
+        )
+
+        # Créer les cactus
+        for i in range(self.number.value()):
+
+            # Créer un cube
+            cactus = cmds.polyCube(name="Cactus_#")[0]
+
+            # Taille aléatoire
+            size = self.size.value()
+
+            cmds.scale(size, size, size, cactus)
+
+            # Position aléatoire
+            x = random.uniform(
+                -self.radius.value(),
+                self.radius.value()
+            )
+
+            z = random.uniform(
+                -self.radius.value(),
+                self.radius.value()
+            )
+
+            cmds.move(x, size / 2, z, cactus)
+
+            # Rotation aléatoire automatique
+            cmds.rotate(
+                0,
+                random.uniform(0, 360),
+                0,
+                cactus
+            )
+
+            # Ajouter au groupe
+            cmds.parent(cactus, self.group)
+
+
+# Lancer l'interface
+try:
+    window.close()
+    window.deleteLater()
+except:
+    pass
+
+window = CactusScatter()
+window.show()
