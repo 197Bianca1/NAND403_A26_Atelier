@@ -2,115 +2,169 @@
 import random
 
 from maya import cmds
-from PySide6 import QtWidgets, QtCore
+
+from PySide6.QtWidgets import (
+    QWidget,
+    QVBoxLayout,
+    QFormLayout,
+    QSpinBox,
+    QDoubleSpinBox,
+    QPushButton,
+    QMessageBox
+)
+
+from PySide6.QtCore import Qt
 
 
-class CactusScatter(QtWidgets.QDialog):
+class Scatter(QWidget):
 
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle("Cactus Scatter")
-        self.setFixedSize(260, 200)
+        self.setWindowTitle("Scatter")
+        self.setMinimumWidth(250)
 
-        # Toujours au-dessus de Maya
+        # Always on Top
         self.setWindowFlags(
-            self.windowFlags() |
-            QtCore.Qt.WindowStaysOnTopHint
+            self.windowFlags() | Qt.WindowStaysOnTopHint
         )
 
         self.group = None
+        self.source = None
 
         self.build_ui()
 
     def build_ui(self):
 
-        layout = QtWidgets.QVBoxLayout(self)
+        layout = QVBoxLayout(self)
+        form = QFormLayout()
 
-        # Nombre de cactus
-        layout.addWidget(QtWidgets.QLabel("Number of Cactus"))
+        layout.addLayout(form)
 
-        self.number = QtWidgets.QSpinBox()
-        self.number.setRange(1, 500)
-        self.number.setValue(20)
-        layout.addWidget(self.number)
+        # Nombre de copies
+        self.count_spin = QSpinBox()
+        self.count_spin.setRange(1, 100)
+        self.count_spin.setValue(10)
 
-        # Rayon de dispersion
-        layout.addWidget(QtWidgets.QLabel("Scatter Radius"))
+        form.addRow("Copies", self.count_spin)
 
-        self.radius = QtWidgets.QDoubleSpinBox()
-        self.radius.setRange(1, 100)
-        self.radius.setValue(10)
-        layout.addWidget(self.radius)
+        # Rayon de distribution
+        self.radius_spin = QDoubleSpinBox()
+        self.radius_spin.setRange(1.0, 50.0)
+        self.radius_spin.setValue(10.0)
 
-        # Taille des cactus
-        layout.addWidget(QtWidgets.QLabel("Cactus Size"))
+        form.addRow("Radius", self.radius_spin)
 
-        self.size = QtWidgets.QDoubleSpinBox()
-        self.size.setRange(0.1, 10)
-        self.size.setValue(1)
-        layout.addWidget(self.size)
+        # Seed aléatoire
+        self.seed_spin = QSpinBox()
+        self.seed_spin.setRange(0, 9999)
+
+        form.addRow("Seed", self.seed_spin)
 
         # Bouton Scatter
-        self.button = QtWidgets.QPushButton("Scatter")
-        layout.addWidget(self.button)
+        scatter_button = QPushButton("Scatter")
+        scatter_button.clicked.connect(self.scatter)
 
-        self.button.clicked.connect(self.scatter)
+        layout.addWidget(scatter_button)
+
+        # Live Edit
+        self.count_spin.valueChanged.connect(self.live_edit)
+        self.radius_spin.valueChanged.connect(self.live_edit)
+        self.seed_spin.valueChanged.connect(self.live_edit)
 
     def scatter(self):
 
-        # Supprimer l'ancienne plantation
-        if self.group and cmds.objExists(self.group):
-            cmds.delete(self.group)
+        selection = cmds.ls(selection=True, transforms=True)
 
-        # Créer un groupe
-        self.group = cmds.group(
-            empty=True,
-            name="Cactus_Scatter_GRP"
-        )
-
-        # Créer les cactus
-        for i in range(self.number.value()):
-
-            # Créer un cube
-            cactus = cmds.polyCube(name="Cactus_#")[0]
-
-            # Taille aléatoire
-            size = self.size.value()
-
-            cmds.scale(size, size, size, cactus)
-
-            # Position aléatoire
-            x = random.uniform(
-                -self.radius.value(),
-                self.radius.value()
+        if not selection:
+            QMessageBox.warning(
+                self,
+                "Scatter",
+                "Select an object first."
             )
+            return
 
-            z = random.uniform(
-                -self.radius.value(),
-                self.radius.value()
-            )
+        self.source = selection[0]
 
-            cmds.move(x, size / 2, z, cactus)
+        cmds.undoInfo(openChunk=True)
 
-            # Rotation aléatoire automatique
-            cmds.rotate(
-                0,
-                random.uniform(0, 360),
-                0,
-                cactus
-            )
+        try:
 
-            # Ajouter au groupe
-            cmds.parent(cactus, self.group)
+            # Création du groupe
+            if not self.group or not cmds.objExists(self.group):
+                self.group = cmds.group(
+                    empty=True,
+                    name="scatter_grp"
+                )
+
+            self.live_edit()
+
+        finally:
+            cmds.undoInfo(closeChunk=True)
+
+    def live_edit(self):
+
+        if not self.source:
+            return
+
+        if not cmds.objExists(self.source):
+            return
+
+        if not self.group or not cmds.objExists(self.group):
+            return
+
+        cmds.undoInfo(openChunk=True)
+
+        try:
+
+            # Supprimer les anciennes copies
+            children = cmds.listRelatives(
+                self.group,
+                children=True,
+                type="transform"
+            ) or []
+
+            if children:
+                cmds.delete(children)
+
+            # Initialiser le hasard
+            random.seed(self.seed_spin.value())
+
+            radius = self.radius_spin.value()
+
+            # Créer les nouvelles copies
+            for i in range(self.count_spin.value()):
+
+                copy = cmds.duplicate(self.source)[0]
+
+                cmds.parent(copy, self.group)
+
+                x = random.uniform(-radius, radius)
+                z = random.uniform(-radius, radius)
+
+                cmds.move(
+                    x,
+                    0,
+                    z,
+                    copy,
+                    relative=True
+                )
+
+        finally:
+            cmds.undoInfo(closeChunk=True)
 
 
-# Lancer l'interface
-try:
-    window.close()
-    window.deleteLater()
-except:
-    pass
+def show_tool():
 
-window = CactusScatter()
-window.show()
+    global tool_window
+
+    try:
+        tool_window.close()
+    except Exception:
+        pass
+
+    tool_window = Scatter()
+    tool_window.show()
+
+
+show_tool()
